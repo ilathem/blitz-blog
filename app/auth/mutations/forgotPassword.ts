@@ -3,12 +3,13 @@ import { resolver } from "@blitzjs/rpc"
 import db from "db"
 import { forgotPasswordMailer } from "mailers/forgotPasswordMailer"
 import { ForgotPassword } from "../validations"
+import { NotFoundError } from "blitz"
 
 const RESET_PASSWORD_TOKEN_EXPIRATION_IN_HOURS = 4
 
 export default resolver.pipe(resolver.zod(ForgotPassword), async ({ email }) => {
   // 1. Get the user
-  const user = await db.user.findFirst({ where: { email: email.toLowerCase() } })
+  const user = await db.user.findFirstOrThrow({ where: { email: email.toLowerCase() } })
 
   // 2. Generate the token and expiration date.
   const token = generateToken()
@@ -35,6 +36,7 @@ export default resolver.pipe(resolver.zod(ForgotPassword), async ({ email }) => 
   } else {
     // 7. If no user found wait the same time so attackers can't tell the difference
     await new Promise((resolve) => setTimeout(resolve, 750))
+    throw new NotFoundError()
   }
 
   // 8. Return the same result whether a password reset email was sent or not
